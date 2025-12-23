@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block page_title %}
+{{ plugin_title }}
+{% endblock page_title %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item">
+  <a href="/">{% trans "Home" %}</a>
+</li>
+<li class="breadcrumb-item active" aria-current="page">
+  {{ plugin_title }}
+</li>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+      <div class="card shadow-sm mt-3">
+        <div class="card-body">
+          <h3 class="card-title mb-3">{{ plugin_title }}</h3>
+
+          <div class="alert alert-info">
+            Pflichtfelder: <strong>Kategorie</strong> und <strong>Name</strong>. Alle anderen Felder sind optional.
+          </div>
+
+          <form class="d-none">{% csrf_token %}</form>
+
+          <div id="bp-alert" class="alert d-none" role="alert"></div>
+
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th style="min-width: 220px;">Kategorie *</th>
+                  <th style="min-width: 220px;">Name *</th>
+                  <th style="min-width: 260px;">Beschreibung</th>
+                  <th style="min-width: 180px;">IPN</th>
+                  <th style="width: 140px;">Anzahl</th>
+                  <th style="min-width: 260px;">Lagerort</th>
+                  <th style="width: 90px;">Aktion</th>
+                </tr>
+              </thead>
+              <tbody id="bp-rows"></tbody>
+            </table>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary" id="bp-add-row">+ Hinzufügen</button>
+            <button type="button" class="btn btn-success" id="bp-submit">Erstellen</button>
+            <button type="button" class="btn btn-outline-secondary" id="bp-reset">Zurücksetzen</button>
+          </div>
+
+          <hr class="my-4" />
+
+          <h5>Ergebnis</h5>
+          <div id="bp-result" class="small text-muted">Noch keine Aktion ausgeführt.</div>
+
+          <div class="mt-3">
+            <button type="button" class="btn btn-outline-primary" id="bp-print" disabled>
+              Labels drucken (Phase 2)
+            </button>
+            <div class="form-text">
+              In Phase 2 binden wir den InvenTree Label-Dialog an (Layout + Drucker wählen) und drucken ausgewählte Labels.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center small text-muted my-4">
+        © 2025 GrischaMedia.ch
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BP = (() => {
+    const categories = [
+      {% for c in categories %}
+        { id: {{ c.id }}, label: "{{ c.pathstring|default:c.name|escapejs }}" },
+      {% endfor %}
+    ];
+
+    const locations = [
+      {% for l in locations %}
+        { id: {{ l.id }}, label: "{{ l.pathstring|default:l.name|escapejs }}" },
+      {% endfor %}
+    ];
+
+    const defaultLocationId = {{ default_location_id|default:0 }};
+    const apiUrl = "{% url 'plugin:bulk-products:api-bulk-create' %}";
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    function setAlert(kind, msg) {
+      const el = document.getElementById('bp-alert');
+      el.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-info');
+      el.classList.add(`alert-${kind}`);
+      el.textContent = msg;
+    }
+
+    function clearAlert() {
+      const el = document.getElementById('bp-alert');
+      el.classList.add('d-none');
+      el.textContent = '';
+    }
+
+    function optionHtml(list, selectedId, placeholder) {
+      const ph = placeholder ? `<option value="">${placeholder}</option>` : '';
+      return ph + list.map(o => `<option value="${o.id}" ${String(o.id) === String(selectedId) ? 'selected' : ''}>${o.label}</option>`).join('');
+    }
+
+    function rowHtml(rowId) {
+      return `
+        <tr data-row-id="${rowId}">
+          <td>
+            <select class="form-select form-select-sm bp-category">
+              ${optionHtml(categories, '', 'Kategorie wählen')}
+            </select>
+          </td>
+          <td><input class="form-control form-control-sm bp-name" type="text" placeholder="Produktname" /></td>
+          <td><input class="form-control form-control-sm bp-description" type="text" placeholder="Beschreibung" /></td>
+          <td><input class="form-control form-control-sm bp-ipn" type="text" placeholder="IPN" /></td>
+          <td><input class="form-control form-control-sm bp-quantity" type="number" min="0" step="1" value="0" /></td>
+          <td>
+            <select class="form-select form-select-sm bp-location">
+              ${optionHtml(locations, defaultLocationId || '', 'Nicht einbuchen')}
+            </select>
+          </td>
+          <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger bp-remove">X</button>
+          </td>
+        </tr>
+      `;
+    }
+
+    function addRow() {
+      const tbody = document.getElementById('bp-rows');
+      const rowId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+      tbody.insertAdjacentHTML('beforeend', rowHtml(rowId));
+    }
+
+    function reset() {
+      clearAlert();
+      document.getElementById('bp-rows').innerHTML = '';
+      document.getElementById('bp-result').textContent = 'Noch keine Aktion ausgeführt.';
+      document.getElementById('bp-print').disabled = true;
+      addRow();
+    }
+
+    function collectItems() {
+      const rows = Array.from(document.querySelectorAll('#bp-rows tr'));
+      return rows.map(r => {
+        const categoryId = r.querySelector('.bp-category').value;
+        const name = r.querySelector('.bp-name').value;
+        const description = r.querySelector('.bp-description').value;
+        const ipn = r.querySelector('.bp-ipn').value;
+        const quantity = r.querySelector('.bp-quantity').value;
+        const locationId = r.querySelector('.bp-location').value;
+        return {
+          category_id: categoryId ? Number(categoryId) : null,
+          name,
+          description,
+          ipn,
+          quantity: quantity === '' ? 0 : Number(quantity),
+          location_id: locationId ? Number(locationId) : null
+        };
+      });
+    }
+
+    async function submit() {
+      clearAlert();
+      const items = collectItems();
+
+      if (!items.length) {
+        setAlert('danger', 'Keine Zeilen vorhanden.');
+        return;
+      }
+
+      setAlert('info', 'Erstelle Produkte…');
+
+      const csrf = getCookie('csrftoken');
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrf ? { 'X-CSRFToken': csrf } : {})
+        },
+        body: JSON.stringify({ items })
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setAlert('danger', data.detail || data.error || `Fehler (${res.status})`);
+        return;
+      }
+
+      const results = data.results || [];
+      const ok = results.filter(r => r.success).length;
+      const fail = results.filter(r => !r.success).length;
+
+      if (fail === 0) setAlert('success', `Erfolgreich erstellt: ${ok}`);
+      else setAlert('danger', `Erstellt: ${ok}, Fehler: ${fail} (Details unten)`);
+
+      const out = [];
+      out.push(`<div class="mb-2"><strong>Erstellt:</strong> ${ok} &nbsp;&nbsp; <strong>Fehler:</strong> ${fail}</div>`);
+      out.push('<ul class="mb-0">');
+      for (const r of results) {
+        if (r.success) {
+          const p = r.part || {};
+          const url = p.url || '#';
+          out.push(`<li>OK: <a href="${url}">${p.name}</a> (ID ${p.id}${p.ipn ? `, IPN ${p.ipn}` : ''})</li>`);
+        } else {
+          out.push(`<li>FEHLER: Zeile ${Number(r.index) + 1}: ${r.error}${r.detail ? ` (${r.detail})` : ''}</li>`);
+        }
+      }
+      out.push('</ul>');
+
+      document.getElementById('bp-result').innerHTML = out.join('');
+      document.getElementById('bp-print').disabled = true;
+    }
+
+    function bindEvents() {
+      document.getElementById('bp-add-row').addEventListener('click', addRow);
+      document.getElementById('bp-reset').addEventListener('click', reset);
+      document.getElementById('bp-submit').addEventListener('click', () => submit().catch(e => {
+        setAlert('danger', e?.message || 'Unbekannter Fehler');
+      }));
+
+      document.getElementById('bp-rows').addEventListener('click', (e) => {
+        const btn = e.target.closest('.bp-remove');
+        if (!btn) return;
+        btn.closest('tr')?.remove();
+      });
+    }
+
+    return { reset, bindEvents };
+  })();
+
+  BP.bindEvents();
+  BP.reset();
+</script>
+{% endblock content %}
+

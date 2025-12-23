@@ -30,6 +30,12 @@ Documentation = "https://docs.inventree.org/en/stable/plugins/"
  [project.entry-points."inventree_plugins"]
 BulkProductsPlugin = "bulkproducts.core:BulkProductsPlugin"
  
+[tool.setuptools]
+include-package-data = true
+
  [tool.setuptools.packages.find]
  where = ["."]
 include = ["bulkproducts*"]
+
+[tool.setuptools.package-data]
+bulkproducts = ["templates/**/*"]

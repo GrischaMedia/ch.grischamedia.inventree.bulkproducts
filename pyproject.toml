@@ -4,7 +4,7 @@
  
  [project]
 name = "ch-grischamedia-inventree-bulkproducts"
-version = "0.1.0"
+version = "1.0.0"
 description = "InvenTree plugin: create multiple parts and optionally stock them in"
  readme = "README.md"
 requires-python = ">=3.10"

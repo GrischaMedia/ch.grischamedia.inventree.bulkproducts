@@ -14,24 +14,26 @@
     <div class="col-12 col-xl-10">
       <div class="card shadow-sm mt-3">
         <div class="card-body">
-          <h3 class="card-title mb-3">{{ plugin_title }}</h3>
+          <h3 class="card-title mb-4">{{ plugin_title }}</h3>
 
           <form class="d-none">{% csrf_token %}</form>
 
           <div id="bp-alert" class="alert d-none" role="alert"></div>
 
           <div class="table-responsive">
-            <table class="table table-sm align-middle">
-              <thead>
+            <table class="table table-sm table-hover align-middle">
+              <thead class="table-light">
                 <tr>
-                  <th style="width: 40px;"></th>
+                  <th style="width: 40px;" class="text-center">
+                    <input type="checkbox" class="form-check-input" id="bp-select-all" />
+                  </th>
                   <th style="min-width: 220px;">Kategorie *</th>
                   <th style="min-width: 220px;">Name *</th>
                   <th style="min-width: 260px;">Beschreibung</th>
                   <th style="min-width: 180px;">IPN</th>
                   <th style="width: 140px;">Anzahl</th>
                   <th style="min-width: 260px;">Lagerort</th>
-                  <th style="width: 90px;">Aktion</th>
+                  <th style="width: 90px;" class="text-end">Aktion</th>
                 </tr>
               </thead>
               <tbody id="bp-rows"></tbody>
@@ -39,21 +41,27 @@
           </div>
 
           <div class="d-flex gap-2 mt-3">
-            <button type="button" class="btn btn-primary" id="bp-add-row">+ Hinzufügen</button>
-            <button type="button" class="btn btn-success" id="bp-submit">Erstellen</button>
-            <button type="button" class="btn btn-outline-secondary" id="bp-reset">Zurücksetzen</button>
+            <button type="button" class="btn btn-primary" id="bp-add-row">
+              <i class="fas fa-plus"></i> Hinzufügen
+            </button>
+            <button type="button" class="btn btn-success" id="bp-submit">
+              <i class="fas fa-check"></i> Erstellen
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="bp-reset">
+              <i class="fas fa-redo"></i> Zurücksetzen
+            </button>
           </div>
 
           <hr class="my-4" />
 
-          <h5>Ergebnis</h5>
-          <div id="bp-result" class="small text-muted">Noch keine Aktion ausgeführt.</div>
+          <h5 class="mb-3">Ergebnis</h5>
+          <div id="bp-result" class="small text-muted mb-3">Noch keine Aktion ausgeführt.</div>
 
           <div class="mt-3">
             <button type="button" class="btn btn-outline-primary" id="bp-print" disabled>
-              Labels drucken
+              <i class="fas fa-print"></i> Labels drucken
             </button>
-            <div class="form-text">
+            <div class="form-text mt-2">
               Wählen Sie die erstellten Produkte per Checkbox aus und klicken Sie auf "Labels drucken", um den InvenTree Label-Dialog zu öffnen.
             </div>
           </div>
@@ -61,7 +69,7 @@
       </div>
 
       <div class="text-center small text-muted my-4">
-        © 2025 GrischaMedia.ch - <a href="https://github.com/GrischaMedia/ch.grischamedia.inventree.bulkproducts" target="_blank">GitHub Repository</a>
+        © 2025 GrischaMedia.ch - <a href="https://github.com/GrischaMedia/ch.grischamedia.inventree.bulkproducts" target="_blank" class="text-decoration-none">GitHub Repository</a>
       </div>
     </div>
   </div>
@@ -70,14 +78,27 @@
 <style>
 .bp-location-wrapper {
   position: relative;
+  width: 100%;
 }
 
 .bp-location-input {
   width: 100%;
   padding: 0.375rem 0.75rem;
   font-size: 0.875rem;
+  line-height: 1.5;
+  color: #212529;
+  background-color: #fff;
   border: 1px solid #ced4da;
   border-radius: 0.25rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.bp-location-input:focus {
+  color: #212529;
+  background-color: #fff;
+  border-color: #86b7fe;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 
 .bp-location-dropdown {
@@ -93,6 +114,7 @@
   overflow-y: auto;
   z-index: 1000;
   display: none;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
 .bp-location-dropdown.show {
@@ -102,6 +124,11 @@
 .bp-location-item {
   padding: 0.5rem 0.75rem;
   cursor: pointer;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.bp-location-item:last-child {
+  border-bottom: none;
 }
 
 .bp-location-item:hover {
@@ -111,6 +138,25 @@
 .bp-location-item.selected {
   background-color: #0d6efd;
   color: white;
+}
+
+.table th {
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+.card {
+  border: none;
+  border-radius: 0.5rem;
+}
+
+.btn {
+  border-radius: 0.375rem;
+  font-weight: 500;
 }
 </style>
 
@@ -126,8 +172,7 @@
     const apiUrl = "{% url 'plugin:bulk-products:api-bulk-create' %}";
     const searchLocationsUrl = "{% url 'plugin:bulk-products:api-search-locations' %}";
     let createdParts = [];
-    let locationSearchTimeout = null;
-    let locationDropdowns = new Map();
+    let locationSearchTimeouts = new Map();
 
     function getCookie(name) {
       const value = `; ${document.cookie}`;
@@ -171,7 +216,10 @@
 
         dropdown.innerHTML = '';
         if (results.length === 0) {
-          dropdown.innerHTML = '<div class="bp-location-item">Keine Ergebnisse</div>';
+          const noResult = document.createElement('div');
+          noResult.className = 'bp-location-item';
+          noResult.textContent = 'Keine Ergebnisse';
+          dropdown.appendChild(noResult);
         } else {
           results.forEach(loc => {
             const item = document.createElement('div');
@@ -195,17 +243,19 @@
     function setupLocationInput(inputEl, hiddenInput) {
       const wrapper = inputEl.parentElement;
       const dropdown = wrapper.querySelector('.bp-location-dropdown');
+      const timeoutKey = inputEl;
       
       inputEl.addEventListener('input', (e) => {
         const query = e.target.value.trim();
         
-        if (locationSearchTimeout) {
-          clearTimeout(locationSearchTimeout);
+        if (locationSearchTimeouts.has(timeoutKey)) {
+          clearTimeout(locationSearchTimeouts.get(timeoutKey));
         }
         
-        locationSearchTimeout = setTimeout(() => {
+        const timeout = setTimeout(() => {
           searchLocations(query, inputEl, hiddenInput);
         }, 300);
+        locationSearchTimeouts.set(timeoutKey, timeout);
       });
 
       inputEl.addEventListener('focus', () => {
@@ -225,7 +275,7 @@
       return `
         <tr data-row-id="${rowId}">
           <td class="text-center">
-            <input type="checkbox" class="form-check-input bp-checkbox" disabled />
+            <input type="checkbox" class="form-check-input bp-checkbox" disabled data-part-id="" />
           </td>
           <td>
             <select class="form-select form-select-sm bp-category">
@@ -244,7 +294,9 @@
             </div>
           </td>
           <td class="text-end">
-            <button type="button" class="btn btn-sm btn-outline-danger bp-remove">X</button>
+            <button type="button" class="btn btn-sm btn-outline-danger bp-remove">
+              <i class="fas fa-times"></i>
+            </button>
           </td>
         </tr>
       `;
@@ -268,6 +320,7 @@
       document.getElementById('bp-rows').innerHTML = '';
       document.getElementById('bp-result').textContent = 'Noch keine Aktion ausgeführt.';
       document.getElementById('bp-print').disabled = true;
+      document.getElementById('bp-select-all').checked = false;
       createdParts = [];
       addRow();
     }
@@ -314,7 +367,11 @@
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setAlert('danger', data.detail || data.error || `Fehler (${res.status})`);
+        if (data.error === 'creation_disabled') {
+          setAlert('danger', 'Fehler: Das Plugin ist nicht zum Erstellen aktiviert. Bitte aktivieren Sie die Einstellung "ALLOW_CREATE" in den Plugin-Einstellungen (Settings → Plugin Settings → Bulk Products).');
+        } else {
+          setAlert('danger', data.detail || data.error || `Fehler (${res.status})`);
+        }
         return;
       }
 
@@ -343,7 +400,7 @@
               checkbox.checked = true;
             }
           }
-          out.push(`<li>OK: <a href="${url}">${p.name}</a> (ID ${p.id}${p.ipn ? `, IPN ${p.ipn}` : ''})</li>`);
+          out.push(`<li>OK: <a href="${url}" target="_blank">${p.name}</a> (ID ${p.id}${p.ipn ? `, IPN ${p.ipn}` : ''})</li>`);
         } else {
           out.push(`<li>FEHLER: Zeile ${Number(r.index) + 1}: ${r.error}${r.detail ? ` (${r.detail})` : ''}</li>`);
         }
@@ -354,11 +411,27 @@
       
       if (createdParts.length > 0) {
         document.getElementById('bp-print').disabled = false;
+        updateSelectAllState();
+      }
+    }
+
+    function updateSelectAllState() {
+      const selectAll = document.getElementById('bp-select-all');
+      const checkboxes = Array.from(document.querySelectorAll('.bp-checkbox:not([disabled])'));
+      const checked = checkboxes.filter(cb => cb.checked);
+      
+      if (checkboxes.length === 0) {
+        selectAll.disabled = true;
+        selectAll.checked = false;
+      } else {
+        selectAll.disabled = false;
+        selectAll.checked = checked.length === checkboxes.length && checkboxes.length > 0;
+        selectAll.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
       }
     }
 
     function printLabels() {
-      const selectedCheckboxes = Array.from(document.querySelectorAll('.bp-checkbox:checked'));
+      const selectedCheckboxes = Array.from(document.querySelectorAll('.bp-checkbox:checked:not([disabled])'));
       const selectedPartIds = selectedCheckboxes
         .map(cb => cb.dataset.partId)
         .filter(id => id);
@@ -387,10 +460,24 @@
       }));
       document.getElementById('bp-print').addEventListener('click', printLabels);
 
+      document.getElementById('bp-select-all').addEventListener('change', (e) => {
+        const checkboxes = document.querySelectorAll('.bp-checkbox:not([disabled])');
+        checkboxes.forEach(cb => {
+          cb.checked = e.target.checked;
+        });
+      });
+
+      document.getElementById('bp-rows').addEventListener('change', (e) => {
+        if (e.target.classList.contains('bp-checkbox')) {
+          updateSelectAllState();
+        }
+      });
+
       document.getElementById('bp-rows').addEventListener('click', (e) => {
         const btn = e.target.closest('.bp-remove');
         if (!btn) return;
         btn.closest('tr')?.remove();
+        updateSelectAllState();
       });
     }
 

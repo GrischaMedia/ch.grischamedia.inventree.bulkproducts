@@ -67,6 +67,53 @@
   </div>
 </div>
 
+<style>
+.bp-location-wrapper {
+  position: relative;
+}
+
+.bp-location-input {
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+}
+
+.bp-location-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ced4da;
+  border-top: none;
+  border-radius: 0 0 0.25rem 0.25rem;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+}
+
+.bp-location-dropdown.show {
+  display: block;
+}
+
+.bp-location-item {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+
+.bp-location-item:hover {
+  background-color: #f8f9fa;
+}
+
+.bp-location-item.selected {
+  background-color: #0d6efd;
+  color: white;
+}
+</style>
+
 <script>
   const BP = (() => {
     const categories = [
@@ -79,6 +126,8 @@
     const apiUrl = "{% url 'plugin:bulk-products:api-bulk-create' %}";
     const searchLocationsUrl = "{% url 'plugin:bulk-products:api-search-locations' %}";
     let createdParts = [];
+    let locationSearchTimeout = null;
+    let locationDropdowns = new Map();
 
     function getCookie(name) {
       const value = `; ${document.cookie}`;
@@ -89,7 +138,7 @@
 
     function setAlert(kind, msg) {
       const el = document.getElementById('bp-alert');
-      el.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-info');
+      el.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-info', 'alert-warning');
       el.classList.add(`alert-${kind}`);
       el.textContent = msg;
     }
@@ -105,33 +154,70 @@
       return ph + list.map(o => `<option value="${o.id}" ${String(o.id) === String(selectedId) ? 'selected' : ''}>${o.label}</option>`).join('');
     }
 
-    function initLocationSelect(selectEl) {
-      if (typeof $.fn.select2 === 'undefined') {
-        console.warn('Select2 not available, falling back to regular select');
+    async function searchLocations(query, inputEl, hiddenInput) {
+      if (query.length < 1) {
+        const dropdown = inputEl.parentElement.querySelector('.bp-location-dropdown');
+        if (dropdown) dropdown.classList.remove('show');
         return;
       }
 
-      $(selectEl).select2({
-        ajax: {
-          url: searchLocationsUrl,
-          dataType: 'json',
-          delay: 250,
-          data: function (params) {
-            return {
-              q: params.term
-            };
-          },
-          processResults: function (data) {
-            return {
-              results: data.results || []
-            };
-          },
-          cache: true
-        },
-        placeholder: 'Lagerort suchen...',
-        allowClear: true,
-        minimumInputLength: 1,
-        width: '100%'
+      try {
+        const res = await fetch(`${searchLocationsUrl}?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        const results = data.results || [];
+
+        const dropdown = inputEl.parentElement.querySelector('.bp-location-dropdown');
+        if (!dropdown) return;
+
+        dropdown.innerHTML = '';
+        if (results.length === 0) {
+          dropdown.innerHTML = '<div class="bp-location-item">Keine Ergebnisse</div>';
+        } else {
+          results.forEach(loc => {
+            const item = document.createElement('div');
+            item.className = 'bp-location-item';
+            item.textContent = loc.text;
+            item.dataset.locationId = loc.id;
+            item.addEventListener('click', () => {
+              inputEl.value = loc.text;
+              hiddenInput.value = loc.id;
+              dropdown.classList.remove('show');
+            });
+            dropdown.appendChild(item);
+          });
+        }
+        dropdown.classList.add('show');
+      } catch (e) {
+        console.error('Location search error:', e);
+      }
+    }
+
+    function setupLocationInput(inputEl, hiddenInput) {
+      const wrapper = inputEl.parentElement;
+      const dropdown = wrapper.querySelector('.bp-location-dropdown');
+      
+      inputEl.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        if (locationSearchTimeout) {
+          clearTimeout(locationSearchTimeout);
+        }
+        
+        locationSearchTimeout = setTimeout(() => {
+          searchLocations(query, inputEl, hiddenInput);
+        }, 300);
+      });
+
+      inputEl.addEventListener('focus', () => {
+        if (inputEl.value.trim().length > 0) {
+          searchLocations(inputEl.value.trim(), inputEl, hiddenInput);
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) {
+          if (dropdown) dropdown.classList.remove('show');
+        }
       });
     }
 
@@ -151,9 +237,11 @@
           <td><input class="form-control form-control-sm bp-ipn" type="text" placeholder="IPN" /></td>
           <td><input class="form-control form-control-sm bp-quantity" type="number" min="0" step="1" value="0" /></td>
           <td>
-            <select class="form-select form-select-sm bp-location" style="width: 100%;">
-              <option value="">Nicht einbuchen</option>
-            </select>
+            <div class="bp-location-wrapper">
+              <input type="text" class="bp-location-input bp-location-search" placeholder="Lagerort suchen..." autocomplete="off" />
+              <input type="hidden" class="bp-location-id" value="" />
+              <div class="bp-location-dropdown"></div>
+            </div>
           </td>
           <td class="text-end">
             <button type="button" class="btn btn-sm btn-outline-danger bp-remove">X</button>
@@ -168,9 +256,10 @@
       tbody.insertAdjacentHTML('beforeend', rowHtml(rowId));
       
       const newRow = tbody.querySelector(`tr[data-row-id="${rowId}"]`);
-      const locationSelect = newRow.querySelector('.bp-location');
-      if (locationSelect) {
-        initLocationSelect(locationSelect);
+      const locationSearch = newRow.querySelector('.bp-location-search');
+      const locationId = newRow.querySelector('.bp-location-id');
+      if (locationSearch && locationId) {
+        setupLocationInput(locationSearch, locationId);
       }
     }
 
@@ -187,22 +276,15 @@
       const rows = Array.from(document.querySelectorAll('#bp-rows tr'));
       return rows.map(r => {
         const categoryEl = r.querySelector('.bp-category');
-        const locationEl = r.querySelector('.bp-location');
+        const locationIdEl = r.querySelector('.bp-location-id');
         
-        let locationId = null;
-        if (locationEl && typeof $(locationEl).select2 !== 'undefined') {
-          locationId = $(locationEl).val();
-        } else {
-          locationId = locationEl ? locationEl.value : null;
-        }
-
         return {
           category_id: categoryEl ? (categoryEl.value ? Number(categoryEl.value) : null) : null,
           name: r.querySelector('.bp-name')?.value || '',
           description: r.querySelector('.bp-description')?.value || '',
           ipn: r.querySelector('.bp-ipn')?.value || '',
           quantity: r.querySelector('.bp-quantity')?.value || 0,
-          location_id: locationId ? Number(locationId) : null
+          location_id: locationIdEl && locationIdEl.value ? Number(locationIdEl.value) : null
         };
       });
     }
@@ -272,12 +354,6 @@
       
       if (createdParts.length > 0) {
         document.getElementById('bp-print').disabled = false;
-        const checkboxes = document.querySelectorAll('.bp-checkbox');
-        checkboxes.forEach(cb => {
-          if (createdParts.some(p => p.id === Number(cb.dataset.partId))) {
-            cb.disabled = false;
-          }
-        });
       }
     }
 
@@ -322,9 +398,6 @@
   })();
 
   document.addEventListener('DOMContentLoaded', function() {
-    if (typeof $ === 'undefined') {
-      console.warn('jQuery not available, Select2 will not work');
-    }
     BP.bindEvents();
     BP.reset();
   });

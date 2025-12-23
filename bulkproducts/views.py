@@ -199,15 +199,20 @@ def search_locations(request: HttpRequest):
 
     from stock.models import StockLocation
 
+    from django.db.models import Q
+
     locations = (
-        StockLocation.objects.filter(name__icontains=query)
+        StockLocation.objects.filter(Q(name__icontains=query) | Q(description__icontains=query))
         .select_related("parent")
         .order_by("tree_id", "lft")[:50]
     )
 
     results = []
     for loc in locations:
-        path = loc.pathstring if hasattr(loc, "pathstring") else loc.name
+        try:
+            path = loc.pathstring
+        except AttributeError:
+            path = loc.name
         results.append({"id": loc.pk, "text": path})
 
     return JsonResponse({"results": results})

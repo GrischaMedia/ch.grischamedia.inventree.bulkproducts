@@ -186,3 +186,29 @@ def bulk_create(request: HttpRequest):
 
     return JsonResponse({"results": results})
 
+
+@login_required
+@permission_required("stock.view_stocklocation", raise_exception=True)
+def search_locations(request: HttpRequest):
+    if request.method != "GET":
+        return JsonResponse({"error": "method_not_allowed"}, status=405)
+
+    query = request.GET.get("q", "").strip()
+    if not query:
+        return JsonResponse({"results": []})
+
+    from stock.models import StockLocation
+
+    locations = (
+        StockLocation.objects.filter(name__icontains=query)
+        .select_related("parent")
+        .order_by("tree_id", "lft")[:50]
+    )
+
+    results = []
+    for loc in locations:
+        path = loc.pathstring if hasattr(loc, "pathstring") else loc.name
+        results.append({"id": loc.pk, "text": path})
+
+    return JsonResponse({"results": results})
+

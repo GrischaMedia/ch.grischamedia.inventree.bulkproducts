@@ -4,17 +4,33 @@ InvenTree Plugin zum **Erstellen mehrerer Teile** (und optional: **direktes Einb
 
 ## Funktion
 
-- Stellt eine Seite bereit unter: **`/plugin/bulk-products/`** (Trailing Slash wichtig)
-- Dort können mehrere neue Teile in einer Tabelle erfasst werden:
-  - Kategorie (Pflicht)
-  - Name (Pflicht)
-  - Beschreibung (optional)
-  - IPN (optional)
-  - Anzahl Produkte (optional, für Einbuchen)
-  - Lagerort (optional, für Einbuchen)
-- Optionales Einbuchen:
-  - Wenn **Anzahl > 0**, wird ein StockItem am gewählten Lagerort erstellt
-  - Wenn kein Lagerort gewählt ist, wird nicht eingebucht (oder es wird der Default-Standort aus den Plugin-Settings verwendet)
+Das Plugin stellt eine Seite bereit unter: **`/plugin/bulk-products/`** (Trailing Slash wichtig)
+
+Auf dieser Seite können mehrere neue Teile in einer Tabelle erfasst werden:
+
+- **Kategorie** (Pflicht)
+- **Name** (Pflicht)
+- **Beschreibung** (optional)
+- **IPN** (optional)
+- **Anzahl Produkte** (optional, für Einbuchen)
+- **Lagerort** (optional, für Einbuchen - dynamisches Suchfeld)
+
+### Features
+
+- Massenerstellung von Teilen in einer Tabelle
+- Optionales direktes Einbuchen in Lagerorte
+- Dynamisches Suchfeld für Lagerorte (wie in InvenTree)
+- Label-Druck für erstellte Produkte
+- Checkbox-Auswahl für zu druckende Labels
+
+### Optionales Einbuchen
+
+- Wenn **Anzahl > 0**, wird ein StockItem am gewählten Lagerort erstellt
+- Wenn kein Lagerort gewählt ist, wird nicht eingebucht (oder es wird der Default-Standort aus den Plugin-Settings verwendet)
+
+### Label-Druck
+
+Nach dem Erstellen von Produkten können diese per Checkbox ausgewählt und mit dem "Labels drucken" Button gedruckt werden. Es öffnet sich der InvenTree Label-Dialog, in dem Layout und Drucker gewählt werden können.
 
 ## Plugin Settings
 
@@ -58,12 +74,36 @@ InvenTree kann Plugins beim Start automatisch installieren, wenn **Check Plugins
 
 Allgemeines Vorgehen (abhängig von deinem InvenTree Stack):
 
-- **plugins.txt persistieren** (Volume/Bind-Mount), damit sie Container-Neustarts überlebt
-- In Portainer: Stack → **Editor** → bei `inventree-server` und `inventree-worker` sicherstellen:
-  - gleiches Plugin-Install-Verhalten (beide brauchen Plugin verfügbar)
-  - nach Änderung: **Re-deploy**
-- In InvenTree UI: **Check Plugins on Startup** aktivieren
-- Danach Plugin in **Plugin Settings** aktivieren und beide Services neu starten
+1. **plugins.txt persistieren** (Volume/Bind-Mount), damit sie Container-Neustarts überlebt
+2. In Portainer: Stack → **Editor** → bei `inventree-server` und `inventree-worker` sicherstellen:
+   - gleiches Plugin-Install-Verhalten (beide brauchen Plugin verfügbar)
+   - nach Änderung: **Re-deploy**
+3. In InvenTree UI: **Check Plugins on Startup** aktivieren
+4. Danach Plugin in **Plugin Settings** aktivieren und beide Services neu starten
+
+#### Beispiel für Portainer Stack (docker-compose.yml)
+
+```yaml
+services:
+  inventree-server:
+    volumes:
+      - ./plugins.txt:/data/plugins.txt
+    environment:
+      - INVENTREE_PLUGINS_ENABLED=true
+      - INVENTREE_PLUGINS_FILE=/data/plugins.txt
+
+  inventree-worker:
+    volumes:
+      - ./plugins.txt:/data/plugins.txt
+    environment:
+      - INVENTREE_PLUGINS_ENABLED=true
+      - INVENTREE_PLUGINS_FILE=/data/plugins.txt
+```
+
+In der `plugins.txt`:
+```
+git+https://github.com/GrischaMedia/ch.grischamedia.inventree.bulkproducts.git@master
+```
 
 ## Nutzung
 
@@ -75,10 +115,8 @@ Wichtig:
 
 - Pflichtfelder sind **Kategorie** und **Name**
 - Einbuchen passiert nur, wenn **Anzahl > 0** und ein Lagerort (oder Default) vorhanden ist
-
-## Roadmap (Phase 2)
-
-- Labels drucken: Auswahl per Checkbox + Öffnen des InvenTree Label-Dialogs (Layout/Drucker wählen) für die neu erstellten Teile
+- Lagerort kann über das dynamische Suchfeld gesucht werden
+- Nach dem Erstellen können Produkte per Checkbox ausgewählt und Labels gedruckt werden
 
 ## Beispiel: pip install direkt von GitHub (master)
 
@@ -86,3 +124,10 @@ Wichtig:
 pip install --no-cache-dir git+https://github.com/GrischaMedia/ch.grischamedia.inventree.bulkproducts.git@master
 ```
 
+## Autor
+
+GrischaMedia.ch
+
+## Lizenz
+
+MIT

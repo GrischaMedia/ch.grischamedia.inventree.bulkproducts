@@ -7,5 +7,6 @@ app_name = "bulk-products"
 urlpatterns = [
     path("", views.BulkProductsView.as_view(), name="index"),
     path("api/bulk-create/", views.bulk_create, name="api-bulk-create"),
+    path("api/search-locations/", views.search_locations, name="api-search-locations"),
 ]
 

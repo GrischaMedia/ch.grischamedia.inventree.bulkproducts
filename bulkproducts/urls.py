@@ -2,7 +2,7 @@ from django.urls import path
 
 from . import views
 
-app_name = "bulkproducts"
+app_name = "bulk-products"
 
 urlpatterns = [
     path("", views.BulkProductsView.as_view(), name="index"),

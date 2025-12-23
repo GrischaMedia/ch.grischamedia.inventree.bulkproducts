@@ -1,0 +1,35 @@
+ [build-system]
+ requires = ["setuptools>=75", "wheel"]
+ build-backend = "setuptools.build_meta"
+ 
+ [project]
+name = "ch-grischamedia-inventree-bulkproducts"
+version = "0.1.0"
+description = "InvenTree plugin: create multiple parts and optionally stock them in"
+ readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+ authors = [
+  { name = "Grischa Media" },
+ ]
+ keywords = ["inventree", "inventreeplugins", "plugin"]
+ classifiers = [
+   "Development Status :: 3 - Alpha",
+   "Framework :: Django",
+   "Programming Language :: Python :: 3",
+   "Programming Language :: Python :: 3 :: Only",
+ ]
+ dependencies = []
+ 
+ [project.urls]
+Homepage = "https://github.com/grischamedia/ch.grischamedia.inventree.bulkproducts"
+Upstream = "https://github.com/inventree/InvenTree"
+Documentation = "https://docs.inventree.org/en/stable/plugins/"
+ 
+ [project.entry-points."inventree_plugins"]
+BulkProductsPlugin = "bulkproducts.core:BulkProductsPlugin"
+ 
+ [tool.setuptools.packages.find]
+ where = ["."]
+include = ["bulkproducts*"]

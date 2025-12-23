@@ -13,7 +13,7 @@ class BulkProductsPlugin(UrlsMixin, NavigationMixin, SettingsMixin, InvenTreePlu
     DESCRIPTION = _("Erstellt mehrere neue Teile in InvenTree und kann diese optional direkt einbuchen.")
     AUTHOR = "GrischaMedia.ch"
     PUBLISHED_DATE = "2025-01-01"
-    VERSION = "1.1.2"
+    VERSION = "1.1.3"
     WEBSITE = "https://github.com/grischamedia/ch.grischamedia.inventree.bulkproducts"
     LICENSE = "MIT"
     PUBLIC = True
@@ -25,7 +25,7 @@ class BulkProductsPlugin(UrlsMixin, NavigationMixin, SettingsMixin, InvenTreePlu
             "name": "Allow create",
             "description": "If enabled, the plugin is allowed to create records",
             "validator": bool,
-            "default": False,
+            "default": True,
         },
         "DEFAULT_STOCK_LOCATION_ID": {
             "name": "Default stock location ID",

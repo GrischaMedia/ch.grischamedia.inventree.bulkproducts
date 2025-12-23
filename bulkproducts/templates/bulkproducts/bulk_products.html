@@ -69,7 +69,7 @@
       </div>
 
       <div class="text-center small text-muted my-4">
-        © 2025 GrischaMedia.ch - <a href="https://github.com/GrischaMedia/ch.grischamedia.inventree.bulkproducts" target="_blank" class="text-decoration-none">GitHub Repository</a>
+        © 2025 GrischaMedia.ch - <a href="https://github.com/GrischaMedia/ch.grischamedia.inventree.bulkproducts" target="_blank">GitHub Repository</a>
       </div>
     </div>
   </div>
@@ -441,13 +441,15 @@
         return;
       }
 
-      const url = `/api/part/label/?parts=${selectedPartIds.join(',')}`;
-      
       if (typeof window.showPrintDialog === 'function') {
         window.showPrintDialog('part', selectedPartIds);
       } else if (typeof window.inventreePrintLabels === 'function') {
         window.inventreePrintLabels(selectedPartIds);
+      } else if (typeof window.inventreeLoad === 'function' && window.inventreeLoad.api) {
+        const url = `/api/label/print/?items=${selectedPartIds.map(id => `part:${id}`).join(',')}`;
+        window.open(url, '_blank');
       } else {
+        const url = `/api/label/print/?items=${selectedPartIds.map(id => `part:${id}`).join(',')}`;
         window.open(url, '_blank');
       }
     }

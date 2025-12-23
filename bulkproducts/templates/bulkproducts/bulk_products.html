@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% load static %}
 
 {% block page_title %}
 {{ plugin_title }}
@@ -156,6 +155,7 @@
 .bp-remove {
   margin: 0;
   padding: 0.25rem 0.5rem;
+  display: inline-block;
 }
 </style>
 
@@ -440,38 +440,41 @@
         return;
       }
 
-      if (typeof inventreeLoad !== 'undefined' && inventreeLoad.api) {
-        const items = selectedPartIds.map(id => `part:${id}`);
-        try {
-          const response = await inventreeLoad.api.post('/api/label/print/', {
-            items: items
-          });
-          
-          if (response.data && response.data.url) {
-            window.open(response.data.url, '_blank');
-          } else if (response.data && response.data.redirect) {
-            window.location.href = response.data.redirect;
+      const items = selectedPartIds.map(id => `part:${id}`);
+      const csrf = getCookie('csrftoken');
+
+      try {
+        const res = await fetch('/api/label/print/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(csrf ? { 'X-CSRFToken': csrf } : {})
+          },
+          body: JSON.stringify({ items: items })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.redirect) {
+            window.location.href = data.redirect;
+          } else if (data.url) {
+            window.open(data.url, '_blank');
           } else {
-            if (typeof showPrintDialog === 'function') {
-              showPrintDialog('part', selectedPartIds);
-            } else {
-              setAlert('warning', 'Label-Druck nicht verfügbar.');
-            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
           }
-        } catch (error) {
-          console.error('Label print error:', error);
-          if (typeof showPrintDialog === 'function') {
-            showPrintDialog('part', selectedPartIds);
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          if (errorData.detail && errorData.detail.includes('GET')) {
+            setAlert('warning', 'Label-Druck-Funktion ist nicht verfügbar. Bitte verwenden Sie die InvenTree Label-Funktion direkt auf den Produktseiten.');
           } else {
             setAlert('danger', 'Fehler beim Drucken der Labels.');
           }
         }
-      } else if (typeof showPrintDialog === 'function') {
-        showPrintDialog('part', selectedPartIds);
-      } else {
-        const items = selectedPartIds.map(id => `part:${id}`).join(',');
-        const url = `/api/label/print/?items=${items}`;
-        window.open(url, '_blank');
+      } catch (e) {
+        console.error('Label print error:', e);
+        setAlert('danger', 'Fehler beim Drucken der Labels: ' + e.message);
       }
     }
 

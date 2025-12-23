@@ -4,13 +4,14 @@ from decimal import Decimal
 from django.contrib.auth.decorators import login_required, permission_required
 from django.http import HttpRequest, JsonResponse
 from django.middleware.csrf import get_token
+from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
 
 from plugin.registry import registry
 
 
-@login_required
-@permission_required("part.view_partcategory", raise_exception=True)
+@method_decorator(login_required, name='dispatch')
+@method_decorator(permission_required("part.view_partcategory", raise_exception=True), name='dispatch')
 class BulkProductsView(TemplateView):
     template_name = "bulkproducts/bulk_products.html"
 

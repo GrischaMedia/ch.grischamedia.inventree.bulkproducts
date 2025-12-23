@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block page_title %}
 {{ plugin_title }}
@@ -143,39 +144,18 @@
   color: white;
 }
 
-.table th {
-  font-weight: 600;
-  border-bottom: 2px solid #dee2e6;
-  background-color: #f8f9fa;
-}
-
 .table td {
   vertical-align: middle;
+  padding: 0.5rem;
 }
 
-.card {
-  border: none;
-  border-radius: 0.5rem;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+.table th {
+  padding: 0.75rem 0.5rem;
 }
 
-.card-body {
-  padding: 1.5rem;
-}
-
-.btn {
-  border-radius: 0.375rem;
-  font-weight: 500;
-  padding: 0.5rem 1rem;
-}
-
-.btn-lg {
-  padding: 0.75rem 1.5rem;
-  font-size: 1.1rem;
-}
-
-.table-hover tbody tr:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+.bp-remove {
+  margin: 0;
+  padding: 0.25rem 0.5rem;
 }
 </style>
 
@@ -460,36 +440,38 @@
         return;
       }
 
-      const items = selectedPartIds.map(id => `part:${id}`);
-      const csrf = getCookie('csrftoken');
-
-      try {
-        const res = await fetch('/api/label/print/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(csrf ? { 'X-CSRFToken': csrf } : {})
-          },
-          body: JSON.stringify({ items: items })
-        });
-
-        if (res.ok) {
-          const blob = await res.blob();
-          const url = window.URL.createObjectURL(blob);
-          window.open(url, '_blank');
-        } else {
-          if (typeof window.showPrintDialog === 'function') {
-            window.showPrintDialog('part', selectedPartIds);
+      if (typeof inventreeLoad !== 'undefined' && inventreeLoad.api) {
+        const items = selectedPartIds.map(id => `part:${id}`);
+        try {
+          const response = await inventreeLoad.api.post('/api/label/print/', {
+            items: items
+          });
+          
+          if (response.data && response.data.url) {
+            window.open(response.data.url, '_blank');
+          } else if (response.data && response.data.redirect) {
+            window.location.href = response.data.redirect;
           } else {
-            setAlert('warning', 'Label-Druck nicht verfügbar. Bitte verwenden Sie die InvenTree Label-Funktion direkt auf den Produktseiten.');
+            if (typeof showPrintDialog === 'function') {
+              showPrintDialog('part', selectedPartIds);
+            } else {
+              setAlert('warning', 'Label-Druck nicht verfügbar.');
+            }
+          }
+        } catch (error) {
+          console.error('Label print error:', error);
+          if (typeof showPrintDialog === 'function') {
+            showPrintDialog('part', selectedPartIds);
+          } else {
+            setAlert('danger', 'Fehler beim Drucken der Labels.');
           }
         }
-      } catch (e) {
-        if (typeof window.showPrintDialog === 'function') {
-          window.showPrintDialog('part', selectedPartIds);
-        } else {
-          setAlert('danger', 'Fehler beim Drucken der Labels: ' + e.message);
-        }
+      } else if (typeof showPrintDialog === 'function') {
+        showPrintDialog('part', selectedPartIds);
+      } else {
+        const items = selectedPartIds.map(id => `part:${id}`).join(',');
+        const url = `/api/label/print/?items=${items}`;
+        window.open(url, '_blank');
       }
     }
 
@@ -515,22 +497,14 @@
       });
 
       document.getElementById('bp-rows').addEventListener('click', (e) => {
-        const btn = e.target.closest('.bp-remove');
-        if (btn) {
+        if (e.target.closest('.bp-remove') || e.target.closest('.fa-times')) {
           e.preventDefault();
           e.stopPropagation();
-          btn.closest('tr')?.remove();
-          updateSelectAllState();
-          return;
-        }
-        
-        const icon = e.target.closest('.fa-times');
-        if (icon) {
-          e.preventDefault();
-          e.stopPropagation();
-          icon.closest('tr')?.remove();
-          updateSelectAllState();
-          return;
+          const row = e.target.closest('tr');
+          if (row) {
+            row.remove();
+            updateSelectAllState();
+          }
         }
       });
     }

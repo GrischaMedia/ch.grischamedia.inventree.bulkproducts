@@ -50,8 +50,8 @@ InvenTree kann Plugins beim Start automatisch installieren, wenn **Check Plugins
 
 1. In deinem InvenTree Config-Verzeichnis eine `plugins.txt` anlegen/erweitern (Pfad abhängig von deiner Installation)
 2. Eintrag hinzufügen (Beispiele):
-   - VCS-Install: `git+https://github.com/grischamedia/ch.grischamedia.inventree.bulkproducts`
-   - Mit Tag/Branch: `git+https://github.com/grischamedia/ch.grischamedia.inventree.bulkproducts@main`
+   - VCS-Install (latest): `git+https://github.com/GrischaMedia/ch.grischamedia.inventree.bulkproducts.git@master`
+   - Pin auf Tag/Commit: `git+https://github.com/GrischaMedia/ch.grischamedia.inventree.bulkproducts.git@<tag-oder-commit>`
 3. Container neu starten
 
 ### Portainer (Stack)
@@ -79,4 +79,10 @@ Wichtig:
 ## Roadmap (Phase 2)
 
 - Labels drucken: Auswahl per Checkbox + Öffnen des InvenTree Label-Dialogs (Layout/Drucker wählen) für die neu erstellten Teile
+
+## Beispiel: pip install direkt von GitHub (master)
+
+```bash
+pip install --no-cache-dir git+https://github.com/GrischaMedia/ch.grischamedia.inventree.bulkproducts.git@master
+```
 

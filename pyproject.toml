@@ -27,8 +27,11 @@ Homepage = "https://github.com/grischamedia/ch.grischamedia.inventree.bulkproduc
 Upstream = "https://github.com/inventree/InvenTree"
 Documentation = "https://docs.inventree.org/en/stable/plugins/"
  
- [project.entry-points."inventree_plugins"]
-BulkProductsPlugin = "bulkproducts.core:BulkProductsPlugin"
+[project.entry-points."inventree.plugins"]
+bulkproducts = "bulkproducts.plugin:BulkProductsPlugin"
+
+[project.entry-points."inventree_plugins"]
+bulkproducts = "bulkproducts.plugin:BulkProductsPlugin"
  
 [tool.setuptools]
 include-package-data = true

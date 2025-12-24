@@ -1,4 +1,4 @@
 """Version information for the plugin package."""
 
-__version__ = "1.1.11"
+__version__ = "1.1.12"
 

@@ -4,7 +4,447 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ plugin_title }} - InvenTree</title>
-  <link rel="stylesheet" href="/static/plugins/bulk-products/bulkproducts/style.css">
+  <style>
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #f5f5f5;
+  color: #212529;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  background-color: #2c3e50;
+  color: white;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.container {
+  flex: 1;
+  max-width: 1400px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  width: 100%;
+}
+
+.card {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  margin-bottom: 2rem;
+}
+
+.card-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  margin-bottom: 1rem;
+  color: #212529;
+  border-collapse: collapse;
+}
+
+.table thead th {
+  vertical-align: bottom;
+  border-bottom: 2px solid #dee2e6;
+  padding: 0.75rem;
+  font-weight: 600;
+  background-color: #f8f9fa;
+}
+
+.table tbody td {
+  padding: 0.75rem;
+  vertical-align: middle;
+  border-top: 1px solid #dee2e6;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.table-light {
+  background-color: #f8f9fa;
+}
+
+.btn {
+  display: inline-block;
+  font-weight: 500;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border-radius: 0.375rem;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  text-decoration: none;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+  color: #fff;
+  background-color: #0b5ed7;
+  border-color: #0a58ca;
+}
+
+.btn-success {
+  color: #fff;
+  background-color: #198754;
+  border-color: #198754;
+}
+
+.btn-success:hover {
+  color: #fff;
+  background-color: #157347;
+  border-color: #146c43;
+}
+
+.btn-outline-secondary {
+  color: #6c757d;
+  border-color: #6c757d;
+  background-color: transparent;
+}
+
+.btn-outline-secondary:hover {
+  color: #fff;
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.btn-outline-danger {
+  color: #dc3545;
+  border-color: #dc3545;
+  background-color: transparent;
+}
+
+.btn-outline-danger:hover {
+  color: #fff;
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.btn-lg {
+  padding: 0.75rem 1.5rem;
+  font-size: 1.1rem;
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #212529;
+  background-color: #fff;
+  background-image: none;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+  color: #212529;
+  background-color: #fff;
+  border-color: #86b7fe;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.form-control-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.form-select {
+  display: block;
+  width: 100%;
+  padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #212529;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-select:focus {
+  border-color: #86b7fe;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.form-select-sm {
+  padding: 0.25rem 2rem 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.alert {
+  position: relative;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+}
+
+.alert-success {
+  color: #0f5132;
+  background-color: #d1e7dd;
+  border-color: #badbcc;
+}
+
+.alert-danger {
+  color: #842029;
+  background-color: #f8d7da;
+  border-color: #f5c2c7;
+}
+
+.alert-info {
+  color: #055160;
+  background-color: #cff4fc;
+  border-color: #b6effb;
+}
+
+.alert-warning {
+  color: #664d03;
+  background-color: #fff3cd;
+  border-color: #ffecb5;
+}
+
+.d-none {
+  display: none !important;
+}
+
+.d-flex {
+  display: flex !important;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.justify-content-end {
+  justify-content: flex-end;
+}
+
+.mt-3 {
+  margin-top: 1rem;
+}
+
+.mb-3 {
+  margin-bottom: 1rem;
+}
+
+.mb-4 {
+  margin-bottom: 1.5rem;
+}
+
+.my-4 {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-end {
+  text-align: right;
+}
+
+.text-muted {
+  color: #6c757d;
+}
+
+.text-danger {
+  color: #dc3545;
+}
+
+.small {
+  font-size: 0.875em;
+}
+
+hr {
+  margin: 1.5rem 0;
+  color: inherit;
+  background-color: currentColor;
+  border: 0;
+  opacity: 0.25;
+  height: 1px;
+}
+
+h5 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  line-height: 1.2;
+  font-size: 1.25rem;
+}
+
+.list-group {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+.list-group-item {
+  position: relative;
+  display: block;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #212529;
+  text-decoration: none;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.125);
+  border-radius: 0.25rem;
+}
+
+.list-group-item:hover {
+  background-color: #f8f9fa;
+}
+
+.list-group-item a {
+  color: #0d6efd;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.list-group-item a:hover {
+  text-decoration: underline;
+}
+
+.bp-location-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.bp-location-input {
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #212529;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.bp-location-input:focus {
+  color: #212529;
+  background-color: #fff;
+  border-color: #86b7fe;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.bp-location-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ced4da;
+  border-top: none;
+  border-radius: 0 0 0.25rem 0.25rem;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.bp-location-dropdown.show {
+  display: block;
+}
+
+.bp-location-item {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.bp-location-item:last-child {
+  border-bottom: none;
+}
+
+.bp-location-item:hover {
+  background-color: #f8f9fa;
+}
+
+.bp-location-item.selected {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.bp-remove {
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  display: inline-block;
+}
+
+.io-footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.io-footer a {
+  color: #0d6efd;
+  text-decoration: none;
+}
+
+.io-footer a:hover {
+  text-decoration: underline;
+}
+  </style>
 </head>
 <body>
   <div class="page">
@@ -43,10 +483,10 @@
 
           <div class="d-flex gap-2 mt-3">
             <button type="button" class="btn btn-primary" id="bp-add-row">
-              <i class="fas fa-plus"></i> Hinzufügen
+              + Hinzufügen
             </button>
             <button type="button" class="btn btn-outline-secondary" id="bp-reset">
-              <i class="fas fa-redo"></i> Zurücksetzen
+              ↻ Zurücksetzen
             </button>
           </div>
 
@@ -54,7 +494,7 @@
 
           <div class="d-flex justify-content-end mb-3">
             <button type="button" class="btn btn-success btn-lg" id="bp-submit">
-              <i class="fas fa-check"></i> Teile Erstellen / Einbuchen
+              ✓ Teile Erstellen / Einbuchen
             </button>
           </div>
 
@@ -75,20 +515,345 @@
   </footer>
 
   <script>
-    window.BULKPRODUCTS = {
-      csrf: '{{ csrf_token }}',
-      categories: [
-        {% for c in categories %}
-          { id: {{ c.id }}, label: "{{ c.pathstring|default:c.name|escapejs }}" },
-        {% endfor %}
-      ],
-      defaultLocationId: {{ default_location_id|default:0 }},
-      apiUrl: "{% url 'plugin:bulk-products:api-bulk-create' %}",
-      searchLocationsUrl: "{% url 'plugin:bulk-products:api-search-locations' %}",
-      createdParts: [],
-      locationSearchTimeouts: new Map()
-    };
+    (function() {
+      const BP = {
+        csrf: '{{ csrf_token }}',
+        categories: [
+          {% for c in categories %}
+            { id: {{ c.id }}, label: "{{ c.pathstring|default:c.name|escapejs }}" },
+          {% endfor %}
+        ],
+        defaultLocationId: {{ default_location_id|default:0 }},
+        apiUrl: "{% url 'plugin:bulk-products:api-bulk-create' %}",
+        searchLocationsUrl: "{% url 'plugin:bulk-products:api-search-locations' %}",
+        createdParts: [],
+        locationSearchTimeouts: new Map()
+      };
+      
+      let createdParts = [];
+      let locationSearchTimeouts = new Map();
+
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return BP.csrf || null;
+      }
+
+      function setAlert(kind, msg) {
+        const el = document.getElementById('bp-alert');
+        if (!el) return;
+        el.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-info', 'alert-warning');
+        el.classList.add(`alert-${kind}`);
+        el.textContent = msg;
+      }
+
+      function clearAlert() {
+        const el = document.getElementById('bp-alert');
+        if (!el) return;
+        el.classList.add('d-none');
+        el.textContent = '';
+      }
+
+      function optionHtml(list, selectedId, placeholder) {
+        const ph = placeholder ? `<option value="">${placeholder}</option>` : '';
+        return ph + list.map(o => `<option value="${o.id}" ${String(o.id) === String(selectedId) ? 'selected' : ''}>${o.label}</option>`).join('');
+      }
+
+      async function searchLocations(query, inputEl, hiddenInput) {
+        if (query.length < 1) {
+          const dropdown = inputEl.parentElement.querySelector('.bp-location-dropdown');
+          if (dropdown) dropdown.classList.remove('show');
+          return;
+        }
+
+        try {
+          const res = await fetch(`${BP.searchLocationsUrl}?q=${encodeURIComponent(query)}`);
+          const data = await res.json();
+          const results = data.results || [];
+
+          const dropdown = inputEl.parentElement.querySelector('.bp-location-dropdown');
+          if (!dropdown) return;
+
+          dropdown.innerHTML = '';
+          if (results.length === 0) {
+            const noResult = document.createElement('div');
+            noResult.className = 'bp-location-item';
+            noResult.textContent = 'Keine Ergebnisse';
+            dropdown.appendChild(noResult);
+          } else {
+            results.forEach(loc => {
+              const item = document.createElement('div');
+              item.className = 'bp-location-item';
+              item.textContent = loc.text;
+              item.dataset.locationId = loc.id;
+              item.addEventListener('click', () => {
+                inputEl.value = loc.text;
+                hiddenInput.value = loc.id;
+                dropdown.classList.remove('show');
+              });
+              dropdown.appendChild(item);
+            });
+          }
+          dropdown.classList.add('show');
+        } catch (e) {
+          console.error('Location search error:', e);
+        }
+      }
+
+      function setupLocationInput(inputEl, hiddenInput) {
+        const wrapper = inputEl.parentElement;
+        const dropdown = wrapper.querySelector('.bp-location-dropdown');
+        const timeoutKey = inputEl;
+        
+        inputEl.addEventListener('input', (e) => {
+          const query = e.target.value.trim();
+          
+          if (locationSearchTimeouts.has(timeoutKey)) {
+            clearTimeout(locationSearchTimeouts.get(timeoutKey));
+          }
+          
+          const timeout = setTimeout(() => {
+            searchLocations(query, inputEl, hiddenInput);
+          }, 300);
+          locationSearchTimeouts.set(timeoutKey, timeout);
+        });
+
+        inputEl.addEventListener('focus', () => {
+          if (inputEl.value.trim().length > 0) {
+            searchLocations(inputEl.value.trim(), inputEl, hiddenInput);
+          }
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!wrapper.contains(e.target)) {
+            if (dropdown) dropdown.classList.remove('show');
+          }
+        });
+      }
+
+      function rowHtml(rowId) {
+        return `
+          <tr data-row-id="${rowId}">
+            <td class="text-center"></td>
+            <td>
+              <select class="form-select form-select-sm bp-category">
+                ${optionHtml(BP.categories, '', 'Kategorie wählen')}
+              </select>
+            </td>
+            <td><input class="form-control form-control-sm bp-name" type="text" placeholder="Produktname" /></td>
+            <td><input class="form-control form-control-sm bp-description" type="text" placeholder="Beschreibung" /></td>
+            <td><input class="form-control form-control-sm bp-ipn" type="text" placeholder="IPN" /></td>
+            <td><input class="form-control form-control-sm bp-quantity" type="number" min="0" step="1" value="0" /></td>
+            <td>
+              <div class="bp-location-wrapper">
+                <input type="text" class="bp-location-input bp-location-search" placeholder="Lagerort suchen..." autocomplete="off" />
+                <input type="hidden" class="bp-location-id" value="" />
+                <div class="bp-location-dropdown"></div>
+              </div>
+            </td>
+            <td class="text-end">
+              <button type="button" class="btn btn-sm btn-outline-danger bp-remove" title="Zeile entfernen">
+                ✕
+              </button>
+            </td>
+          </tr>
+        `;
+      }
+
+      function addRow() {
+        const tbody = document.getElementById('bp-rows');
+        if (!tbody) return;
+        const rowId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+        tbody.insertAdjacentHTML('beforeend', rowHtml(rowId));
+        
+        const newRow = tbody.querySelector(`tr[data-row-id="${rowId}"]`);
+        if (!newRow) return;
+        const locationSearch = newRow.querySelector('.bp-location-search');
+        const locationId = newRow.querySelector('.bp-location-id');
+        if (locationSearch && locationId) {
+          setupLocationInput(locationSearch, locationId);
+        }
+      }
+
+      function reset() {
+        clearAlert();
+        const tbody = document.getElementById('bp-rows');
+        if (tbody) tbody.innerHTML = '';
+        const resultEl = document.getElementById('bp-result');
+        if (resultEl) resultEl.textContent = 'Noch keine Aktion ausgeführt.';
+        const partsContainer = document.getElementById('bp-created-parts');
+        if (partsContainer) partsContainer.classList.add('d-none');
+        const partsList = document.getElementById('bp-parts-list');
+        if (partsList) partsList.innerHTML = '';
+        createdParts = [];
+        addRow();
+      }
+
+      function collectItems() {
+        const rows = Array.from(document.querySelectorAll('#bp-rows tr'));
+        return rows.map(r => {
+          const categoryEl = r.querySelector('.bp-category');
+          const locationIdEl = r.querySelector('.bp-location-id');
+          
+          return {
+            category_id: categoryEl ? (categoryEl.value ? Number(categoryEl.value) : null) : null,
+            name: r.querySelector('.bp-name')?.value || '',
+            description: r.querySelector('.bp-description')?.value || '',
+            ipn: r.querySelector('.bp-ipn')?.value || '',
+            quantity: r.querySelector('.bp-quantity')?.value || 0,
+            location_id: locationIdEl && locationIdEl.value ? Number(locationIdEl.value) : null
+          };
+        });
+      }
+
+      function renderCreatedParts() {
+        const container = document.getElementById('bp-parts-list');
+        const partsContainer = document.getElementById('bp-created-parts');
+        
+        if (!container || !partsContainer) return;
+        
+        if (createdParts.length === 0) {
+          partsContainer.classList.add('d-none');
+          return;
+        }
+
+        partsContainer.classList.remove('d-none');
+        container.innerHTML = '';
+
+        createdParts.forEach(part => {
+          const item = document.createElement('div');
+          item.className = 'list-group-item';
+          item.style.display = 'flex';
+          item.style.justifyContent = 'space-between';
+          item.style.alignItems = 'center';
+          
+          const link = document.createElement('a');
+          link.href = part.url || '#';
+          link.target = '_blank';
+          link.textContent = part.name;
+          
+          const info = document.createElement('span');
+          info.className = 'text-muted small';
+          let infoText = `ID: ${part.id}`;
+          if (part.ipn) {
+            infoText += ` | IPN: ${part.ipn}`;
+          }
+          info.textContent = infoText;
+
+          item.appendChild(link);
+          item.appendChild(info);
+          container.appendChild(item);
+        });
+      }
+
+      async function submit() {
+        clearAlert();
+        const items = collectItems();
+
+        if (!items.length) {
+          setAlert('danger', 'Keine Zeilen vorhanden.');
+          return;
+        }
+
+        setAlert('info', 'Erstelle Produkte…');
+
+        const csrf = getCookie('csrftoken');
+
+        try {
+          const res = await fetch(BP.apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(csrf ? { 'X-CSRFToken': csrf } : {})
+            },
+            body: JSON.stringify({ items })
+          });
+
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok) {
+            if (data.error === 'creation_disabled') {
+              setAlert('danger', 'Fehler: Das Plugin ist nicht zum Erstellen aktiviert. Bitte aktivieren Sie die Einstellung "ALLOW_CREATE" in den Plugin-Einstellungen (Settings → Plugin Settings → Bulk Products).');
+            } else {
+              setAlert('danger', data.detail || data.error || `Fehler (${res.status})`);
+            }
+            return;
+          }
+
+          const results = data.results || [];
+          const ok = results.filter(r => r.success).length;
+          const fail = results.filter(r => !r.success).length;
+
+          if (fail === 0) setAlert('success', `Erfolgreich erstellt: ${ok}`);
+          else setAlert('danger', `Erstellt: ${ok}, Fehler: ${fail} (Details unten)`);
+
+          createdParts = results.filter(r => r.success && r.part).map(r => r.part);
+
+          const out = [];
+          out.push(`<div class="mb-2"><strong>Erstellt:</strong> ${ok} &nbsp;&nbsp; <strong>Fehler:</strong> ${fail}</div>`);
+          if (fail > 0) {
+            out.push('<ul class="mb-0">');
+            for (const r of results) {
+              if (!r.success) {
+                out.push(`<li class="text-danger">FEHLER: Zeile ${Number(r.index) + 1}: ${r.error}${r.detail ? ` (${r.detail})` : ''}</li>`);
+              }
+            }
+            out.push('</ul>');
+          }
+
+          const resultEl = document.getElementById('bp-result');
+          if (resultEl) resultEl.innerHTML = out.join('');
+          
+          renderCreatedParts();
+        } catch (e) {
+          setAlert('danger', 'Fehler beim Erstellen: ' + (e.message || 'Unbekannter Fehler'));
+        }
+      }
+
+      function bindEvents() {
+        const addRowBtn = document.getElementById('bp-add-row');
+        if (addRowBtn) {
+          addRowBtn.addEventListener('click', addRow);
+        }
+
+        const resetBtn = document.getElementById('bp-reset');
+        if (resetBtn) {
+          resetBtn.addEventListener('click', reset);
+        }
+
+        const submitBtn = document.getElementById('bp-submit');
+        if (submitBtn) {
+          submitBtn.addEventListener('click', () => submit().catch(e => {
+            setAlert('danger', e?.message || 'Unbekannter Fehler');
+          }));
+        }
+
+        const tbody = document.getElementById('bp-rows');
+        if (tbody) {
+          tbody.addEventListener('click', (e) => {
+            if (e.target.closest('.bp-remove')) {
+              e.preventDefault();
+              e.stopPropagation();
+              const row = e.target.closest('tr');
+              if (row) {
+                row.remove();
+              }
+            }
+          });
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          bindEvents();
+          reset();
+        });
+      } else {
+        bindEvents();
+        reset();
+      }
+    })();
   </script>
-  <script src="/static/plugins/bulk-products/bulkproducts/script.js"></script>
 </body>
 </html>

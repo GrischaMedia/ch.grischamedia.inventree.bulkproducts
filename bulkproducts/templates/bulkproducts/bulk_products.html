@@ -72,11 +72,19 @@ body {
 
 .card-body {
   padding: 1.5rem;
+  overflow: visible;
 }
 
 .table-responsive {
   overflow-x: auto;
   overflow-y: visible;
+  max-height: none;
+}
+
+@media (max-width: 1600px) {
+  .table-responsive {
+    overflow-x: auto;
+  }
 }
 
 .table {
@@ -482,8 +490,8 @@ h5 {
 
           <div id="bp-alert" class="alert d-none" role="alert"></div>
 
-          <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle">
+          <div class="table-responsive" style="overflow-x: auto; overflow-y: visible; max-height: none;">
+            <table class="table table-sm table-hover align-middle" style="margin-bottom: 0;">
               <thead class="table-light">
                 <tr>
                   <th style="width: 40px;" class="text-center"></th>
@@ -622,6 +630,38 @@ h5 {
         }
       }
 
+      async function findLocationByText(text) {
+        if (!text || text.trim().length === 0) return null;
+        
+        try {
+          const res = await fetch(`${BP.searchLocationsUrl}?q=${encodeURIComponent(text.trim())}`);
+          const data = await res.json();
+          const results = data.results || [];
+          
+          // Suche nach exakter Übereinstimmung
+          const exactMatch = results.find(loc => loc.text === text.trim());
+          if (exactMatch) {
+            return exactMatch.id;
+          }
+          
+          // Suche nach Teilübereinstimmung (case-insensitive)
+          const partialMatch = results.find(loc => loc.text.toLowerCase() === text.trim().toLowerCase());
+          if (partialMatch) {
+            return partialMatch.id;
+          }
+          
+          // Wenn nur ein Ergebnis, nimm das
+          if (results.length === 1) {
+            return results[0].id;
+          }
+          
+          return null;
+        } catch (e) {
+          console.error('Location search error:', e);
+          return null;
+        }
+      }
+
       function setupLocationInput(inputEl, hiddenInput) {
         const wrapper = inputEl.parentElement;
         const dropdown = wrapper.querySelector('.bp-location-dropdown');
@@ -643,6 +683,17 @@ h5 {
         inputEl.addEventListener('focus', () => {
           if (inputEl.value.trim().length > 0) {
             searchLocations(inputEl.value.trim(), inputEl, hiddenInput);
+          }
+        });
+
+        // Beim Verlassen des Feldes versuchen, die location_id zu finden
+        inputEl.addEventListener('blur', async () => {
+          const text = inputEl.value.trim();
+          if (text && !hiddenInput.value) {
+            const locationId = await findLocationByText(text);
+            if (locationId) {
+              hiddenInput.value = locationId;
+            }
           }
         });
 
@@ -711,21 +762,36 @@ h5 {
         addRow();
       }
 
-      function collectItems() {
+      async function collectItems() {
         const rows = Array.from(document.querySelectorAll('#bp-rows tr'));
-        return rows.map(r => {
+        const items = [];
+        
+        for (const r of rows) {
           const categoryEl = r.querySelector('.bp-category');
           const locationIdEl = r.querySelector('.bp-location-id');
+          const locationInput = r.querySelector('.bp-location-search');
           
-          return {
+          let locationId = locationIdEl && locationIdEl.value ? Number(locationIdEl.value) : null;
+          
+          // Wenn keine location_id, aber Text eingegeben wurde, versuche zu finden
+          if (!locationId && locationInput && locationInput.value.trim()) {
+            locationId = await findLocationByText(locationInput.value.trim());
+            if (locationId && locationIdEl) {
+              locationIdEl.value = locationId;
+            }
+          }
+          
+          items.push({
             category_id: categoryEl ? (categoryEl.value ? Number(categoryEl.value) : null) : null,
             name: r.querySelector('.bp-name')?.value || '',
             description: r.querySelector('.bp-description')?.value || '',
             ipn: r.querySelector('.bp-ipn')?.value || '',
             quantity: r.querySelector('.bp-quantity')?.value || 0,
-            location_id: locationIdEl && locationIdEl.value ? Number(locationIdEl.value) : null
-          };
-        });
+            location_id: locationId
+          });
+        }
+        
+        return items;
       }
 
       function renderCreatedParts() {
@@ -770,7 +836,7 @@ h5 {
 
       async function submit() {
         clearAlert();
-        const items = collectItems();
+        const items = await collectItems();
 
         if (!items.length) {
           setAlert('danger', 'Keine Zeilen vorhanden.');

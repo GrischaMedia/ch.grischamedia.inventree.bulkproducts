@@ -1,20 +1,22 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block page_title %}
 {{ plugin_title }}
 {% endblock page_title %}
 
 {% block breadcrumbs %}
-{% endblock breadcrumbs %}
+{% endblock %}
 
 {% block content %}
+
 <div class="container-fluid">
   <div class="row justify-content-center">
     <div class="col-12 col-xl-10">
       <div class="card shadow-sm mt-3">
         <div class="card-body">
-          <h3 class="card-title mb-4">{{ plugin_title }}</h3>
+          <h3 class="card-title mb-4">{% trans "Bulk Products" %}</h3>
 
           <form class="d-none">{% csrf_token %}</form>
 
@@ -24,9 +26,7 @@
             <table class="table table-sm table-hover align-middle">
               <thead class="table-light">
                 <tr>
-                  <th style="width: 40px;" class="text-center">
-                    <input type="checkbox" class="form-check-input" id="bp-select-all" />
-                  </th>
+                  <th style="width: 40px;" class="text-center"></th>
                   <th style="min-width: 220px;">Kategorie *</th>
                   <th style="min-width: 220px;">Name *</th>
                   <th style="min-width: 260px;">Beschreibung</th>
@@ -60,13 +60,9 @@
           <h5 class="mb-3">Ergebnis</h5>
           <div id="bp-result" class="small text-muted mb-3">Noch keine Aktion ausgeführt.</div>
 
-          <div class="mt-3">
-            <button type="button" class="btn btn-outline-primary" id="bp-print" disabled>
-              <i class="fas fa-print"></i> Labels drucken
-            </button>
-            <div class="form-text mt-2">
-              Wählen Sie die erstellten Produkte per Checkbox aus und klicken Sie auf "Labels drucken", um den InvenTree Label-Dialog zu öffnen.
-            </div>
+          <div id="bp-created-parts" class="mt-3 d-none">
+            <h5 class="mb-3">Erstellte Produkte</h5>
+            <div class="list-group" id="bp-parts-list"></div>
           </div>
         </div>
       </div>
@@ -156,6 +152,31 @@
   margin: 0;
   padding: 0.25rem 0.5rem;
   display: inline-block;
+}
+
+#bp-parts-list .list-group-item {
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.125);
+  border-radius: 0.25rem;
+}
+
+#bp-parts-list .list-group-item:hover {
+  background-color: #f8f9fa;
+}
+
+#bp-parts-list .list-group-item a {
+  color: #0d6efd;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+#bp-parts-list .list-group-item a:hover {
+  text-decoration: underline;
+}
+
+#bp-parts-list .list-group-item .badge {
+  margin-left: 0.5rem;
 }
 </style>
 
@@ -273,9 +294,7 @@
     function rowHtml(rowId) {
       return `
         <tr data-row-id="${rowId}">
-          <td class="text-center">
-            <input type="checkbox" class="form-check-input bp-checkbox" disabled data-part-id="" />
-          </td>
+          <td class="text-center"></td>
           <td>
             <select class="form-select form-select-sm bp-category">
               ${optionHtml(categories, '', 'Kategorie wählen')}
@@ -318,8 +337,12 @@
       clearAlert();
       document.getElementById('bp-rows').innerHTML = '';
       document.getElementById('bp-result').textContent = 'Noch keine Aktion ausgeführt.';
-      document.getElementById('bp-print').disabled = true;
-      document.getElementById('bp-select-all').checked = false;
+      if (document.getElementById('bp-created-parts')) {
+        document.getElementById('bp-created-parts').classList.add('d-none');
+      }
+      if (document.getElementById('bp-parts-list')) {
+        document.getElementById('bp-parts-list').innerHTML = '';
+      }
       createdParts = [];
       addRow();
     }
@@ -338,6 +361,41 @@
           quantity: r.querySelector('.bp-quantity')?.value || 0,
           location_id: locationIdEl && locationIdEl.value ? Number(locationIdEl.value) : null
         };
+      });
+    }
+
+    function renderCreatedParts() {
+      const container = document.getElementById('bp-parts-list');
+      const partsContainer = document.getElementById('bp-created-parts');
+      
+      if (createdParts.length === 0) {
+        partsContainer.classList.add('d-none');
+        return;
+      }
+
+      partsContainer.classList.remove('d-none');
+      container.innerHTML = '';
+
+      createdParts.forEach(part => {
+        const item = document.createElement('div');
+        item.className = 'list-group-item d-flex justify-content-between align-items-center';
+        
+        const link = document.createElement('a');
+        link.href = part.url || '#';
+        link.target = '_blank';
+        link.textContent = part.name;
+        
+        const info = document.createElement('span');
+        info.className = 'text-muted small';
+        let infoText = `ID: ${part.id}`;
+        if (part.ipn) {
+          infoText += ` | IPN: ${part.ipn}`;
+        }
+        info.textContent = infoText;
+
+        item.appendChild(link);
+        item.appendChild(info);
+        container.appendChild(item);
       });
     }
 
@@ -385,97 +443,19 @@
 
       const out = [];
       out.push(`<div class="mb-2"><strong>Erstellt:</strong> ${ok} &nbsp;&nbsp; <strong>Fehler:</strong> ${fail}</div>`);
-      out.push('<ul class="mb-0">');
-      for (const r of results) {
-        if (r.success) {
-          const p = r.part || {};
-          const url = p.url || '#';
-          const rows = Array.from(document.querySelectorAll('#bp-rows tr'));
-          if (rows[r.index]) {
-            const checkbox = rows[r.index].querySelector('.bp-checkbox');
-            if (checkbox) {
-              checkbox.disabled = false;
-              checkbox.dataset.partId = p.id;
-              checkbox.checked = true;
-            }
+      if (fail > 0) {
+        out.push('<ul class="mb-0">');
+        for (const r of results) {
+          if (!r.success) {
+            out.push(`<li class="text-danger">FEHLER: Zeile ${Number(r.index) + 1}: ${r.error}${r.detail ? ` (${r.detail})` : ''}</li>`);
           }
-          out.push(`<li>OK: <a href="${url}" target="_blank">${p.name}</a> (ID ${p.id}${p.ipn ? `, IPN ${p.ipn}` : ''})</li>`);
-        } else {
-          out.push(`<li>FEHLER: Zeile ${Number(r.index) + 1}: ${r.error}${r.detail ? ` (${r.detail})` : ''}</li>`);
         }
+        out.push('</ul>');
       }
-      out.push('</ul>');
 
       document.getElementById('bp-result').innerHTML = out.join('');
       
-      if (createdParts.length > 0) {
-        document.getElementById('bp-print').disabled = false;
-        updateSelectAllState();
-      }
-    }
-
-    function updateSelectAllState() {
-      const selectAll = document.getElementById('bp-select-all');
-      const checkboxes = Array.from(document.querySelectorAll('.bp-checkbox:not([disabled])'));
-      const checked = checkboxes.filter(cb => cb.checked);
-      
-      if (checkboxes.length === 0) {
-        selectAll.disabled = true;
-        selectAll.checked = false;
-      } else {
-        selectAll.disabled = false;
-        selectAll.checked = checked.length === checkboxes.length && checkboxes.length > 0;
-        selectAll.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
-      }
-    }
-
-    async function printLabels() {
-      const selectedCheckboxes = Array.from(document.querySelectorAll('.bp-checkbox:checked:not([disabled])'));
-      const selectedPartIds = selectedCheckboxes
-        .map(cb => cb.dataset.partId)
-        .filter(id => id);
-
-      if (selectedPartIds.length === 0) {
-        setAlert('warning', 'Bitte wählen Sie mindestens ein Produkt aus.');
-        return;
-      }
-
-      const items = selectedPartIds.map(id => `part:${id}`);
-      const csrf = getCookie('csrftoken');
-
-      try {
-        const res = await fetch('/api/label/print/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(csrf ? { 'X-CSRFToken': csrf } : {})
-          },
-          body: JSON.stringify({ items: items })
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.redirect) {
-            window.location.href = data.redirect;
-          } else if (data.url) {
-            window.open(data.url, '_blank');
-          } else {
-            const blob = await res.blob();
-            const url = window.URL.createObjectURL(blob);
-            window.open(url, '_blank');
-          }
-        } else {
-          const errorData = await res.json().catch(() => ({}));
-          if (errorData.detail && errorData.detail.includes('GET')) {
-            setAlert('warning', 'Label-Druck-Funktion ist nicht verfügbar. Bitte verwenden Sie die InvenTree Label-Funktion direkt auf den Produktseiten.');
-          } else {
-            setAlert('danger', 'Fehler beim Drucken der Labels.');
-          }
-        }
-      } catch (e) {
-        console.error('Label print error:', e);
-        setAlert('danger', 'Fehler beim Drucken der Labels: ' + e.message);
-      }
+      renderCreatedParts();
     }
 
     function bindEvents() {
@@ -484,20 +464,6 @@
       document.getElementById('bp-submit').addEventListener('click', () => submit().catch(e => {
         setAlert('danger', e?.message || 'Unbekannter Fehler');
       }));
-      document.getElementById('bp-print').addEventListener('click', printLabels);
-
-      document.getElementById('bp-select-all').addEventListener('change', (e) => {
-        const checkboxes = document.querySelectorAll('.bp-checkbox:not([disabled])');
-        checkboxes.forEach(cb => {
-          cb.checked = e.target.checked;
-        });
-      });
-
-      document.getElementById('bp-rows').addEventListener('change', (e) => {
-        if (e.target.classList.contains('bp-checkbox')) {
-          updateSelectAllState();
-        }
-      });
 
       document.getElementById('bp-rows').addEventListener('click', (e) => {
         if (e.target.closest('.bp-remove') || e.target.closest('.fa-times')) {
@@ -506,7 +472,6 @@
           const row = e.target.closest('tr');
           if (row) {
             row.remove();
-            updateSelectAllState();
           }
         }
       });
@@ -520,4 +485,4 @@
     BP.reset();
   });
 </script>
-{% endblock content %}
+{% endblock %}

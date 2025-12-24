@@ -79,11 +79,14 @@ body {
   overflow-x: auto;
   overflow-y: visible;
   max-height: none;
+  min-height: 300px;
+  position: relative;
 }
 
 @media (max-width: 1600px) {
   .table-responsive {
     overflow-x: auto;
+    overflow-y: visible;
   }
 }
 
@@ -418,7 +421,7 @@ h5 {
   border-radius: 0 0 0.25rem 0.25rem;
   max-height: 150px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 1001;
   display: none;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
   margin-top: -1px;
@@ -633,26 +636,53 @@ h5 {
       async function findLocationByText(text) {
         if (!text || text.trim().length === 0) return null;
         
+        const searchText = text.trim();
+        
         try {
-          const res = await fetch(`${BP.searchLocationsUrl}?q=${encodeURIComponent(text.trim())}`);
+          const res = await fetch(`${BP.searchLocationsUrl}?q=${encodeURIComponent(searchText)}`);
           const data = await res.json();
           const results = data.results || [];
           
+          if (results.length === 0) {
+            return null;
+          }
+          
           // Suche nach exakter Übereinstimmung
-          const exactMatch = results.find(loc => loc.text === text.trim());
+          const exactMatch = results.find(loc => loc.text === searchText);
           if (exactMatch) {
             return exactMatch.id;
           }
           
-          // Suche nach Teilübereinstimmung (case-insensitive)
-          const partialMatch = results.find(loc => loc.text.toLowerCase() === text.trim().toLowerCase());
-          if (partialMatch) {
-            return partialMatch.id;
+          // Suche nach exakter Übereinstimmung (case-insensitive)
+          const exactMatchCaseInsensitive = results.find(loc => loc.text.toLowerCase() === searchText.toLowerCase());
+          if (exactMatchCaseInsensitive) {
+            return exactMatchCaseInsensitive.id;
+          }
+          
+          // Suche nach Übereinstimmung am Ende (für Pfade wie "Atelier/Regal 1/Fach 13")
+          const endMatch = results.find(loc => loc.text.endsWith(searchText) || loc.text.endsWith('/' + searchText));
+          if (endMatch) {
+            return endMatch.id;
+          }
+          
+          // Suche nach Übereinstimmung am Ende (case-insensitive)
+          const endMatchCaseInsensitive = results.find(loc => 
+            loc.text.toLowerCase().endsWith(searchText.toLowerCase()) || 
+            loc.text.toLowerCase().endsWith('/' + searchText.toLowerCase())
+          );
+          if (endMatchCaseInsensitive) {
+            return endMatchCaseInsensitive.id;
           }
           
           // Wenn nur ein Ergebnis, nimm das
           if (results.length === 1) {
             return results[0].id;
+          }
+          
+          // Wenn mehrere Ergebnisse, aber einer passt genau (enthält den Text als Teil)
+          const containsMatch = results.find(loc => loc.text.includes(searchText));
+          if (containsMatch) {
+            return containsMatch.id;
           }
           
           return null;

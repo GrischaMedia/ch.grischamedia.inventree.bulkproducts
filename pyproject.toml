@@ -4,7 +4,7 @@
  
  [project]
 name = "ch-grischamedia-inventree-bulkproducts"
-version = "1.1.9"
+version = "1.1.10"
 description = "InvenTree plugin: create multiple parts and optionally stock them in"
  readme = "README.md"
 requires-python = ">=3.10"
@@ -41,4 +41,4 @@ include-package-data = true
 include = ["bulkproducts*"]
 
 [tool.setuptools.package-data]
-bulkproducts = ["templates/**/*"]
+bulkproducts = ["templates/**/*", "static/**/*"]

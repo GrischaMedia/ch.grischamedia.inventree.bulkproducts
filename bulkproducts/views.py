@@ -49,6 +49,13 @@ class BulkProductsView(TemplateView):
         ctx["locations"] = locations
         ctx["default_location_id"] = default_location_id
         ctx["csrf_token"] = get_token(self.request)
+        
+        plugin = registry.get_plugin("bulk-products")
+        if plugin:
+            ctx["plugin_version"] = plugin.VERSION
+        else:
+            ctx["plugin_version"] = ""
+        
         return ctx
 
 

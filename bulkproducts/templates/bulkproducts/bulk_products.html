@@ -25,11 +25,27 @@ body {
   padding: 1rem 2rem;
   font-weight: 600;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.version-badge {
+  display: inline-block;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .container {
   flex: 1;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 2rem auto;
   padding: 0 1rem;
   width: 100%;
@@ -449,7 +465,10 @@ h5 {
 <body>
   <div class="page">
     <div class="topbar">
-      InvenTree - {{ plugin_title }}
+      <span>InvenTree - {{ plugin_title }}</span>
+      {% if plugin_version %}
+      <span class="version-badge">v{{ plugin_version }}</span>
+      {% endif %}
     </div>
 
     <div class="container">
@@ -510,8 +529,8 @@ h5 {
     </div>
   </div>
 
-  <footer class="io-footer" style="margin-top:20px; text-align:center; font-size:0.85em; color:#666;">
-    © 2025 GrischaMedia.ch – <a href="https://github.com/GrischaMedia/ch.grischamedia.inventree.bulkproducts" target="_blank">GitHub Repository</a>
+  <footer style="margin-top:20px; text-align:center; font-size:0.85em; color:#666;">
+    © 2025 GrischaMedia – <a href="https://github.com/GrischaMedia/ch.grischamedia.inventree.bulkproducts" target="_blank" style="color:#0d6efd; text-decoration:none;">GitHub Repository</a>
   </footer>
 
   <script>

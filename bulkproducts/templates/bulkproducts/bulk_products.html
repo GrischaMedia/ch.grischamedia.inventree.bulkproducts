@@ -387,6 +387,7 @@ h5 {
 .bp-location-wrapper {
   position: relative;
   width: 100%;
+  z-index: 1;
 }
 
 .bp-location-input {
@@ -410,20 +411,15 @@ h5 {
 }
 
 .bp-location-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
+  position: fixed;
   background: white;
   border: 1px solid #ced4da;
-  border-top: none;
-  border-radius: 0 0 0.25rem 0.25rem;
-  max-height: 150px;
+  border-radius: 0.25rem;
+  max-height: 200px;
   overflow-y: auto;
-  z-index: 1001;
+  z-index: 9999;
   display: none;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-  margin-top: -1px;
 }
 
 .bp-location-dropdown.show {
@@ -591,10 +587,24 @@ h5 {
         return ph + list.map(o => `<option value="${o.id}" ${String(o.id) === String(selectedId) ? 'selected' : ''}>${o.label}</option>`).join('');
       }
 
+      function positionDropdown(dropdown, inputEl) {
+        if (!dropdown || !inputEl) return;
+        
+        const rect = inputEl.getBoundingClientRect();
+        dropdown.style.top = (rect.bottom + window.scrollY) + 'px';
+        dropdown.style.left = (rect.left + window.scrollX) + 'px';
+        dropdown.style.width = rect.width + 'px';
+      }
+
       async function searchLocations(query, inputEl, hiddenInput) {
         if (query.length < 1) {
           const dropdown = inputEl.parentElement.querySelector('.bp-location-dropdown');
-          if (dropdown) dropdown.classList.remove('show');
+          if (dropdown) {
+            dropdown.classList.remove('show');
+            dropdown.style.top = '';
+            dropdown.style.left = '';
+            dropdown.style.width = '';
+          }
           return;
         }
 
@@ -622,11 +632,26 @@ h5 {
                 inputEl.value = loc.text;
                 hiddenInput.value = loc.id;
                 dropdown.classList.remove('show');
+                dropdown.style.top = '';
+                dropdown.style.left = '';
+                dropdown.style.width = '';
               });
               dropdown.appendChild(item);
             });
           }
+          
+          positionDropdown(dropdown, inputEl);
           dropdown.classList.add('show');
+          
+          // Position beim Scrollen aktualisieren
+          const updatePosition = () => {
+            if (dropdown.classList.contains('show')) {
+              positionDropdown(dropdown, inputEl);
+            }
+          };
+          
+          window.addEventListener('scroll', updatePosition, true);
+          dropdown.dataset.scrollHandler = 'true';
         } catch (e) {
           console.error('Location search error:', e);
         }
@@ -735,11 +760,25 @@ h5 {
               hiddenInput.value = locationId;
             }
           }
+          // Dropdown schließen mit kurzer Verzögerung, damit Click-Events funktionieren
+          setTimeout(() => {
+            if (dropdown && !dropdown.matches(':hover')) {
+              dropdown.classList.remove('show');
+              dropdown.style.top = '';
+              dropdown.style.left = '';
+              dropdown.style.width = '';
+            }
+          }, 200);
         });
 
         document.addEventListener('click', (e) => {
-          if (!wrapper.contains(e.target)) {
-            if (dropdown) dropdown.classList.remove('show');
+          if (!wrapper.contains(e.target) && !dropdown.contains(e.target)) {
+            if (dropdown) {
+              dropdown.classList.remove('show');
+              dropdown.style.top = '';
+              dropdown.style.left = '';
+              dropdown.style.width = '';
+            }
           }
         });
       }

@@ -20,6 +20,7 @@ class BulkProductsView(TemplateView):
         from stock.models import StockLocation
 
         ctx = super().get_context_data(**kwargs)
+        ctx['request'] = self.request
 
         default_location_id = 0
         plugin = registry.get_plugin("bulk-products")

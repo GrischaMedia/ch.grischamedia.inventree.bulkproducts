@@ -209,19 +209,42 @@ def search_locations(request: HttpRequest):
 
     from django.db.models import Q
 
-    locations = (
-        StockLocation.objects.filter(Q(name__icontains=query) | Q(description__icontains=query))
-        .select_related("parent")
-        .order_by("tree_id", "lft")[:50]
-    )
-
     results = []
-    for loc in locations:
+    query_lower = query.lower()
+    
+    # Hole alle Locations und prüfe den vollständigen Pfad
+    all_locations = StockLocation.objects.all().select_related("parent").order_by("tree_id", "lft")[:200]
+    
+    for loc in all_locations:
         try:
             path = loc.pathstring
         except AttributeError:
             path = loc.name
-        results.append({"id": loc.pk, "text": path})
+        
+        path_lower = path.lower()
+        
+        # Exakte Übereinstimmung (case-sensitive)
+        if path == query:
+            results.append({"id": loc.pk, "text": path})
+            continue
+        
+        # Exakte Übereinstimmung (case-insensitive)
+        if path_lower == query_lower:
+            results.append({"id": loc.pk, "text": path})
+            continue
+        
+        # Pfad enthält den Query-String
+        if query_lower in path_lower:
+            results.append({"id": loc.pk, "text": path})
+            continue
+        
+        # Name enthält den Query-String
+        if query_lower in loc.name.lower():
+            results.append({"id": loc.pk, "text": path})
+            continue
+    
+    # Begrenze auf 50 Ergebnisse
+    results = results[:50]
 
     return JsonResponse({"results": results})
 

@@ -79,7 +79,6 @@ body {
   overflow-x: auto;
   overflow-y: visible;
   max-height: none;
-  min-height: 300px;
   position: relative;
 }
 
@@ -493,7 +492,7 @@ h5 {
 
           <div id="bp-alert" class="alert d-none" role="alert"></div>
 
-          <div class="table-responsive" style="overflow-x: auto; overflow-y: visible; max-height: none;">
+          <div class="table-responsive">
             <table class="table table-sm table-hover align-middle" style="margin-bottom: 0;">
               <thead class="table-light">
                 <tr>
@@ -639,39 +638,21 @@ h5 {
         const searchText = text.trim();
         
         try {
-          const res = await fetch(`${BP.searchLocationsUrl}?q=${encodeURIComponent(searchText)}`);
-          const data = await res.json();
-          const results = data.results || [];
+          // Versuche zuerst mit dem vollständigen Text
+          let res = await fetch(`${BP.searchLocationsUrl}?q=${encodeURIComponent(searchText)}`);
+          let data = await res.json();
+          let results = data.results || [];
           
-          if (results.length === 0) {
-            return null;
-          }
-          
-          // Suche nach exakter Übereinstimmung
-          const exactMatch = results.find(loc => loc.text === searchText);
+          // Suche nach exakter Übereinstimmung (case-sensitive)
+          let exactMatch = results.find(loc => loc.text === searchText);
           if (exactMatch) {
             return exactMatch.id;
           }
           
           // Suche nach exakter Übereinstimmung (case-insensitive)
-          const exactMatchCaseInsensitive = results.find(loc => loc.text.toLowerCase() === searchText.toLowerCase());
-          if (exactMatchCaseInsensitive) {
-            return exactMatchCaseInsensitive.id;
-          }
-          
-          // Suche nach Übereinstimmung am Ende (für Pfade wie "Atelier/Regal 1/Fach 13")
-          const endMatch = results.find(loc => loc.text.endsWith(searchText) || loc.text.endsWith('/' + searchText));
-          if (endMatch) {
-            return endMatch.id;
-          }
-          
-          // Suche nach Übereinstimmung am Ende (case-insensitive)
-          const endMatchCaseInsensitive = results.find(loc => 
-            loc.text.toLowerCase().endsWith(searchText.toLowerCase()) || 
-            loc.text.toLowerCase().endsWith('/' + searchText.toLowerCase())
-          );
-          if (endMatchCaseInsensitive) {
-            return endMatchCaseInsensitive.id;
+          exactMatch = results.find(loc => loc.text.toLowerCase() === searchText.toLowerCase());
+          if (exactMatch) {
+            return exactMatch.id;
           }
           
           // Wenn nur ein Ergebnis, nimm das
@@ -679,10 +660,39 @@ h5 {
             return results[0].id;
           }
           
-          // Wenn mehrere Ergebnisse, aber einer passt genau (enthält den Text als Teil)
-          const containsMatch = results.find(loc => loc.text.includes(searchText));
-          if (containsMatch) {
-            return containsMatch.id;
+          // Wenn mehrere Ergebnisse, suche nach exakter Übereinstimmung
+          exactMatch = results.find(loc => loc.text === searchText || loc.text.toLowerCase() === searchText.toLowerCase());
+          if (exactMatch) {
+            return exactMatch.id;
+          }
+          
+          // Versuche mit verschiedenen Teilen des Pfads
+          const parts = searchText.split('/').filter(p => p.trim().length > 0);
+          if (parts.length > 0) {
+            // Versuche mit dem letzten Teil (z.B. "Fach 13")
+            const lastPart = parts[parts.length - 1].trim();
+            res = await fetch(`${BP.searchLocationsUrl}?q=${encodeURIComponent(lastPart)}`);
+            data = await res.json();
+            results = data.results || [];
+            
+            // Suche nach Übereinstimmung am Ende
+            const endMatch = results.find(loc => {
+              const locText = loc.text.toLowerCase();
+              const searchLower = searchText.toLowerCase();
+              return locText === searchLower || locText.endsWith('/' + searchLower) || locText.endsWith(searchLower);
+            });
+            if (endMatch) {
+              return endMatch.id;
+            }
+            
+            // Suche nach Übereinstimmung, die den vollständigen Pfad enthält
+            const fullPathMatch = results.find(loc => {
+              const locText = loc.text.toLowerCase();
+              return locText.includes(searchLower) || searchLower.includes(locText);
+            });
+            if (fullPathMatch) {
+              return fullPathMatch.id;
+            }
           }
           
           return null;
